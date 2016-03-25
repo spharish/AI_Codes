@@ -1,0 +1,389 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package iterative_deeping;
+
+/**
+ *
+ * @author
+ */
+/*
+ * Author : Adrish Banerjee
+ * Roll No. : IRM2013014
+ * 
+ * Title: Java Program to solve the n-puzzle problem
+ * 
+ * P = Minimum cost of path
+ * E = n*n board 
+ * A = Something to swap blank position
+ * S = Sensor which indicates the board state
+ */
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Scanner;
+import java.util.Stack;
+import java.util.Vector;
+
+class Input {
+
+    int N;
+    int[][] board;
+
+    Input(int N) {
+        this.N = N;
+        board = new int[N][N];
+    }
+
+}
+
+class IterativeDeepening {
+
+    public static void main(String[] args) {
+
+        int t;
+        Input[] input;
+
+        Scanner s = new Scanner(System.in);
+        t = s.nextInt();
+        input = new Input[t];
+        for (int i = 0; i < t; i++) {
+            int N = s.nextInt();
+            Input obj = new Input(N);
+            for (int j = 0; j < N; j++) {
+                for (int k = 0; k < N; k++) {
+                    obj.board[j][k] = s.nextInt();
+                }
+            }
+            input[i] = obj;
+        }
+
+        for (int i = 0; i < t; i++) {
+            Environment e = new Environment(input[i].N, input[i].board);
+            Sensor sense = new Sensor(e);
+            Agent a = new Agent(sense);
+            a.execute(sense);
+            
+        }
+
+    }
+}
+
+class Environment {
+
+    int size;
+    int[][] board;
+
+    public Environment(int size, int[][] board) {
+        this.size = size;
+        this.board = board;
+    }
+
+}
+
+class Sensor {
+
+    Environment e;
+
+    public Sensor(Environment e) {
+        this.e = e;
+    }
+
+    int[][] getBoard() {
+        return e.board;
+    }
+
+    int getSize() {
+        return e.size;
+    }
+}
+
+class Agent {
+
+    private List<Action> seq;
+    int[][] goal;
+    private final int[][] state;
+    private final int size;
+
+    public Agent(Sensor s) {
+        seq = new ArrayList<>();
+        goal = new int[s.getSize()][s.getSize()];
+        size = s.getSize();
+
+        state = new int[s.getSize()][s.getSize()];
+
+        for (int i = 0; i < s.getSize(); i++) {
+            System.arraycopy(s.getBoard()[i], 0, state[i], 0, s.getSize());
+        }
+
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                System.out.print(state[i][j] + " ");
+            }
+        }
+        System.out.println();
+    }
+
+    private int[][] formulateGoal(int[][] matrix, int N) {
+
+        int[][] localGoal;
+        Index blankLocation;
+        int missingNumber = -1;
+
+        boolean[] isPresent = new boolean[N * N];
+        blankLocation = new Index();
+        localGoal = new int[N][N];
+
+        for (int i = 0; i < N * N; i++) {
+            isPresent[i] = false;
+        }
+
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                if (matrix[i][j] != -1) {
+                    isPresent[matrix[i][j] - 1] = true;
+                } else {
+                    blankLocation.x = i;
+                    blankLocation.y = j;
+                }
+            }
+        }
+
+        for (int i = 0; i < N * N; i++) {
+            if (isPresent[i] == false) {
+                missingNumber = i + 1;
+            }
+        }
+
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                if (i * N + j + 1 == missingNumber) {
+                    localGoal[i][j] = -1;
+                } else {
+                    localGoal[i][j] = i * N + j + 1;
+                }
+            }
+        }
+
+  /*
+         for(int i = 0; i < N; i++) {
+         for(int j = 0; j < N; j++) System.out.print(localGoal[i][j] + " ");
+         System.out.println();
+         }*/
+         
+        return localGoal;
+    }
+
+    public Action execute(Sensor s) {
+        Action action = null;
+
+        if (seq.isEmpty()) {
+            goal = formulateGoal(state, size);
+            for (int i = 0; i <= 100; i++) {
+                int x = iterativeDepthFirstSearch(state, size, i);
+                if (x == 1) {
+                    break;
+                }
+            }
+        }
+
+      //  if (seq.size() > 0) {
+        //    action = seq.remove(0);
+        // }
+        return action;
+    }
+
+    private int iterativeDepthFirstSearch(int[][] startState, int N, int L) {
+
+
+        
+        Stack<Action> S = new Stack<>();
+
+        Stack<SearchStructure> searchQueue = new Stack<>();
+
+        Vector<SearchStructure> states = new Vector<>();
+
+        SearchStructure startStruct = new SearchStructure(-1, N, 0);
+
+        for (int i = 0; i < N; i++) {
+            System.arraycopy(startState[i], 0, startStruct.state[i], 0, N);
+        }
+
+        boolean goalReached = false;
+        searchQueue.push(startStruct);
+        int parent = 0;
+
+        while (!searchQueue.isEmpty()) {
+            SearchStructure tmp = searchQueue.pop();
+            states.add(parent, tmp);
+
+            if (isEqual(tmp, N)) {
+                goalReached = true;
+                break;
+            }
+
+            Index[] tmpBlankLoc = new Index[2];
+
+            int tmpIndex = 0;
+            for (int i = 0; i < N; i++) {
+                for (int j = 0; j < N; j++) {
+                    if (tmp.state[i][j] == -1) {
+                        tmpBlankLoc[tmpIndex] = new Index();
+                        tmpBlankLoc[tmpIndex].x = i;
+                        tmpBlankLoc[tmpIndex].y = j;
+                        tmpIndex++;
+                    }
+                }
+            }
+
+            if (tmp.depth < L) {
+
+                if (canGoDown(tmpBlankLoc[0], N)) {
+
+                    SearchStructure child = new SearchStructure(parent, N, tmp.depth + 1);
+                    for (int i = 0; i < N; i++) {
+                        System.arraycopy(tmp.state[i], 0, child.state[i], 0, N);
+                    }
+                    int tmpVal = child.state[tmpBlankLoc[0].x][tmpBlankLoc[0].y - 1];
+                    child.state[tmpBlankLoc[0].x][tmpBlankLoc[0].y - 1] = -1;
+                    child.state[tmpBlankLoc[0].x][tmpBlankLoc[0].y] = tmpVal;
+                    searchQueue.push(child);
+
+                }
+
+                if (canGoRight(tmpBlankLoc[0], N)) {
+
+                    SearchStructure child = new SearchStructure(parent, N, tmp.depth + 1);
+                    for (int i = 0; i < N; i++) {
+                        System.arraycopy(tmp.state[i], 0, child.state[i], 0, N);
+                    }
+                    int tmpVal = child.state[tmpBlankLoc[0].x + 1][tmpBlankLoc[0].y];
+                    child.state[tmpBlankLoc[0].x + 1][tmpBlankLoc[0].y] = -1;
+                    child.state[tmpBlankLoc[0].x][tmpBlankLoc[0].y] = tmpVal;
+                    searchQueue.push(child);
+
+                }
+
+                if (canGoUp(tmpBlankLoc[0], N)) {
+
+                    SearchStructure child = new SearchStructure(parent, N, tmp.depth + 1);
+                    for (int i = 0; i < N; i++) {
+                        System.arraycopy(tmp.state[i], 0, child.state[i], 0, N);
+                    }
+                    int tmpVal = child.state[tmpBlankLoc[0].x][tmpBlankLoc[0].y + 1];
+                    child.state[tmpBlankLoc[0].x][tmpBlankLoc[0].y + 1] = -1;
+                    child.state[tmpBlankLoc[0].x][tmpBlankLoc[0].y] = tmpVal;
+                    searchQueue.push(child);
+
+                }
+
+                if (canGoLeft(tmpBlankLoc[0], N)) {
+
+                    SearchStructure child = new SearchStructure(parent, N, tmp.depth + 1);
+                    for (int i = 0; i < N; i++) {
+                        System.arraycopy(tmp.state[i], 0, child.state[i], 0, N);
+                    }
+                    int tmpVal = child.state[tmpBlankLoc[0].x - 1][tmpBlankLoc[0].y];
+                    child.state[tmpBlankLoc[0].x - 1][tmpBlankLoc[0].y] = -1;
+                    child.state[tmpBlankLoc[0].x][tmpBlankLoc[0].y] = tmpVal;
+                    searchQueue.push(child);
+
+                }
+            }
+
+            
+            parent++;
+
+        }
+
+        if (goalReached) {
+
+            SearchStructure solution = states.lastElement();
+            while (solution.parent != -1) {
+                int[] tmpAct = new int[N * N];
+                for (int i = 0; i < N; i++) {
+                    System.arraycopy(solution.state[i], 0, tmpAct, i * N, N);
+                }
+                Action act = new Action(tmpAct);
+                S.push(act);
+                solution = states.elementAt(solution.parent);
+            }
+
+            while (S.empty() == false) {
+                Action printAct = S.pop();
+                for (int i = 0; i < N * N; i++) {
+                    System.out.print(printAct.curState[i] + " ");
+                }
+                System.out.println();
+            }
+            
+            return 1;
+        }
+        
+        return 0;
+
+    }
+
+    boolean canGoLeft(Index blankLoc, int N) {
+        return blankLoc.x > 0;
+    }
+
+    boolean canGoUp(Index blankLoc, int N) {
+        return blankLoc.y < N - 1;
+    }
+
+    boolean canGoRight(Index blankLoc, int N) {
+        return blankLoc.x < N - 1;
+    }
+
+    boolean canGoDown(Index blankLoc, int N) {
+        return blankLoc.y > 0;
+    }
+
+    boolean isEqual(SearchStructure a, int N) {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                if (a.state[i][j] != goal[i][j]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+}
+
+class SearchStructure {
+
+    int parent;
+    int[][] state;
+    int depth;
+
+    SearchStructure(int parent, int N, int depth) {
+        this.parent = parent;
+        state = new int[N][N];
+        this.depth = depth;
+    }
+}
+
+class Index {
+
+    int x;
+    int y;
+
+    Index() {
+        x = 0;
+        y = 0;
+    }
+}
+
+class Action {
+
+    int[] curState;
+
+    Action(int[] curState) {
+        this.curState = curState;
+    }
+
+}
